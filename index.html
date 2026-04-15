@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gym of Legends | OS v29 Mobile Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #010409; --sidebar: #0d1117; --primary: #38bdf8;
+            --surface: rgba(22, 27, 34, 0.8); --border: rgba(255, 255, 255, 0.1);
+            --text: #f0f6fc; --text-dim: #8b949e; --success: #238636; --danger: #da3633;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+
+        /* --- MOBİL NAV (ÜST BAR) --- */
+        .mobile-header { display: none; background: var(--sidebar); border-bottom: 1px solid var(--border); padding: 15px; width: 100%; position: fixed; top: 0; z-index: 200; justify-content: space-between; align-items: center; }
+        .menu-toggle { font-size: 1.5rem; color: var(--primary); cursor: pointer; }
+
+        /* --- SIDEBAR --- */
+        aside { width: 320px; min-width: 320px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; transition: 0.3s; z-index: 150; }
+        .logo h1 { font-size: 1.4rem; color: var(--primary); font-weight: 800; letter-spacing: -1.5px; margin-bottom: 25px; }
+        
+        .member-stack { flex: 1; overflow-y: auto; margin-top: 15px; }
+        .m-card { padding: 15px; background: rgba(255,255,255,0.03); border-radius: 16px; margin-bottom: 10px; cursor: pointer; border: 1px solid transparent; display: flex; justify-content: space-between; align-items: center; }
+        .m-card.active { border-color: var(--primary); background: rgba(56, 189, 248, 0.1); }
+
+        /* --- ANA PANEL --- */
+        main { flex: 1; display: none; flex-direction: column; padding: 30px; overflow-y: auto; background: radial-gradient(circle at 100% 0%, #1e293b44, transparent); }
+
+        /* --- MOBİL UYARLAMA (MEDIA QUERIES) --- */
+        @media (max-width: 1024px) {
+            aside { position: fixed; left: -320px; height: 100%; box-shadow: 20px 0 50px rgba(0,0,0,0.8); }
+            aside.open { left: 0; }
+            .mobile-header { display: flex; }
+            main { padding: 80px 15px 30px 15px; width: 100%; }
+            .master-grid { grid-template-columns: 1fr !important; }
+            .top-header { flex-direction: column; gap: 15px; align-items: flex-start !important; }
+            .nav-tabs { width: 100%; overflow-x: auto; }
+            .data-row.exc-grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
+            .data-row.meal-grid { grid-template-columns: 1fr !important; }
+        }
+
+        .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-shrink: 0; }
+        .nav-tabs { display: flex; background: #161b22; padding: 6px; border-radius: 14px; border: 1px solid var(--border); gap: 4px; }
+        .tab-btn { padding: 10px 15px; border-radius: 10px; cursor: pointer; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); border:none; background:none; white-space: nowrap; }
+        .tab-btn.active { background: var(--primary); color: #000; }
+
+        .day-scroller { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
+        .day-chip { padding: 10px 18px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; font-size: 0.75rem; font-weight: 800; white-space: nowrap; }
+        .day-chip.active { background: #fff; color: #000; }
+
+        /* --- GRID & PANELS --- */
+        .master-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 20px; }
+        .pro-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 28px; padding: 20px; backdrop-filter: blur(20px); margin-bottom: 20px; }
+
+        .data-row { display: grid; gap: 10px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 18px; margin-bottom: 12px; }
+        .exc-grid { grid-template-columns: 1fr 2.5fr 0.6fr 0.6fr 0.6fr auto; }
+        .meal-grid { grid-template-columns: 0.6fr 0.8fr 2.5fr auto; }
+
+        input, select, textarea { background: #0d1117; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 10px; outline: none; font-size: 0.9rem; width: 100%; }
+        label { font-size: 0.6rem; color: var(--text-dim); font-weight: 800; text-transform: uppercase; margin-bottom: 5px; display: block; }
+
+        .btn-p { background: var(--primary); color: #000; padding: 14px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; width: 100%; }
+        .btn-wa { background: #238636; color: #fff; padding: 10px 15px; border-radius: 10px; border: none; font-weight: 800; }
+
+        .photo-slot { height: 250px; background: #000; border-radius: 20px; border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; position: relative; }
+        .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal { background: var(--sidebar); border: 1px solid var(--primary); padding: 30px; border-radius: 30px; width: 100%; max-width: 400px; }
+
+        ::-webkit-scrollbar { height: 4px; width: 4px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="mobile-header">
+    <div class="menu-toggle" onclick="toggleSidebar(true)">☰</div>
+    <h2 style="color:var(--primary); font-size:1rem; font-weight:800;">GYM OF LEGENDS</h2>
+    <div style="width:24px;"></div> </div>
+
+<aside id="sidebar">
+    <div class="logo" style="display:flex; justify-content:space-between;">
+        <h1>GYM OF LEGENDS</h1>
+        <div class="menu-toggle" style="display:none; color:var(--danger)" id="close-menu" onclick="toggleSidebar(false)">✕</div>
+    </div>
+    <button class="btn-p" onclick="toggleModal(true)">+ YENİ ÜYE EKLE</button>
+    <div class="member-stack" id="mList"></div>
+</aside>
+
+<main id="mainPanel">
+    <div class="top-header">
+        <div>
+            <h1 id="activeMemberTitle" style="font-size: 1.8rem; letter-spacing: -1px;">...</h1>
+            <p id="vol-badge" style="color:var(--primary); font-size:0.7rem; font-weight:900;">TONAJ: 0 KG</p>
+        </div>
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('workout', this)">ANTRENMAN</button>
+            <button class="tab-btn" onclick="switchTab('nutrition', this)">BESLENME</button>
+            <button class="tab-btn" onclick="switchTab('measures', this)">ÖLÇÜLER</button>
+            <button class="tab-btn" onclick="switchTab('biz', this)">İŞLETME</button>
+        </div>
+    </div>
+
+    <div class="day-scroller" id="dayHub"></div>
+
+    <div class="master-grid">
+        <div class="pro-panel">
+            <div id="workout-view" class="tab-pane">
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                    <h3>PROGRAM</h3>
+                    <button class="btn-p" style="width:auto; padding:5px 12px;" onclick="addExcRow()">+ EKLE</button>
+                </div>
+                <div id="excStack"></div>
+            </div>
+
+            <div id="nutrition-view" class="tab-pane hidden">
+                <h3>BESLENME</h3>
+                <div id="mealStack"></div>
+                <button class="btn-p" style="width:auto; margin-top:10px;" onclick="addMealRow()">+ ÖĞÜN</button>
+            </div>
+
+            <div id="measures-view" class="tab-pane hidden">
+                <h3>ÖLÇÜLER & GALERİ</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:15px;">
+                    <div><label>OMUZ</label><input type="text" id="o-sh" oninput="save()"></div>
+                    <div><label>BEL</label><input type="text" id="o-wa" oninput="save()"></div>
+                    <div><label>KOL</label><input type="text" id="o-ar" oninput="save()"></div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px;">
+                    <div class="photo-slot" onclick="setPic('before')"><img id="img-before" src="" style="display:none;"><p style="font-size:0.6rem;">ÖNCESİ</p></div>
+                    <div class="photo-slot" onclick="setPic('after')"><img id="img-after" src="" style="display:none;"><p style="font-size:0.6rem;">SONRASI</p></div>
+                </div>
+            </div>
+
+            <div id="biz-view" class="tab-pane hidden">
+                <h3>İŞLETME</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div><label>KALAN</label><input type="number" id="f-sess" oninput="save()"></div>
+                    <div><label>DURUM</label><select id="f-stat" onchange="save()"><option>ÖDENDİ</option><option>BORÇLU</option></select></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pro-panel">
+            <div style="height:140px; margin-bottom:15px;"><canvas id="mainChart"></canvas></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div><label>KİLO</label><input type="text" id="s-w" onchange="pushW()"></div>
+                <div><label>BOY</label><input type="text" id="s-h" onchange="save()"></div>
+            </div>
+            <textarea id="coachNotes" rows="4" placeholder="Koç Notları..." oninput="save()"></textarea>
+            <button class="btn-wa" style="width:100%; margin-top:15px;" onclick="shareWA()">WHATSAPP İLE GÖNDER</button>
+        </div>
+    </div>
+</main>
+
+<div class="modal-overlay" id="regModal">
+    <div class="modal">
+        <h2 style="color:var(--primary); margin-bottom:15px;">Yeni Kayıt</h2>
+        <input type="text" id="reg-name" placeholder="Ad Soyad" style="margin-bottom:10px;">
+        <input type="number" id="reg-w" placeholder="Kilo" style="margin-bottom:15px;">
+        <button class="btn-p" onclick="confirmRegister()">BAŞLAT</button>
+        <button onclick="toggleModal(false)" style="background:none; border:none; color:#fff; width:100%; margin-top:10px;">İPTAL</button>
+    </div>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('gym_v29_mobile')) || {};
+    let actId = null, actDay = "Pazartesi", chart = null;
+    const days = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+    const regs = ["Göğüs", "Sırt", "Omuz", "Bacak", "Biceps", "Triceps", "Karın", "Kardiyo", "OFF"];
+
+    function toggleSidebar(s) { document.getElementById('sidebar').classList.toggle('open', s); }
+    function toggleModal(s) { document.getElementById('regModal').style.display = s ? 'flex' : 'none'; }
+
+    function confirmRegister() {
+        const name = document.getElementById('reg-name').value;
+        if(!name) return;
+        const id = 'L' + Date.now();
+        db[id] = { name, notes:"", stats:{h:'', w:document.getElementById('reg-w').value}, biz:{sess:12, stat:'ÖDENDİ'}, measures:{}, history:[], photos:{}, days: days.reduce((a,d)=>({...a, [d]:{exc:[], meals:[]}}), {}) };
+        if(db[id].stats.w) db[id].history.push(parseFloat(db[id].stats.w));
+        saveDB(); toggleModal(false); drawMembers(); mount(id);
+    }
+
+    function drawMembers() {
+        const c = document.getElementById('mList'); c.innerHTML = '';
+        Object.keys(db).forEach(id => {
+            const d = document.createElement('div');
+            d.className = `m-card ${actId === id ? 'active' : ''}`;
+            d.innerHTML = `<b>${db[id].name.toUpperCase()}</b> <span onclick="deleteM(event,'${id}')">✕</span>`;
+            d.onclick = () => { mount(id); toggleSidebar(false); };
+            c.appendChild(d);
+        });
+    }
+
+    function mount(id) {
+        actId = id; document.getElementById('mainPanel').style.display = 'flex';
+        const m = db[id];
+        document.getElementById('activeMemberTitle').innerText = m.name;
+        document.getElementById('coachNotes').value = m.notes || "";
+        document.getElementById('s-h').value = m.stats.h || "";
+        document.getElementById('s-w').value = m.stats.w || "";
+        document.getElementById('f-sess').value = m.biz.sess;
+        document.getElementById('f-stat').value = m.biz.stat;
+        // Measures
+        document.getElementById('o-sh').value = m.measures.sh || "";
+        document.getElementById('o-wa').value = m.measures.wa || "";
+        document.getElementById('o-ar').value = m.measures.ar || "";
+        
+        updatePics(); renderDays(); load(); buildChart(); drawMembers();
+    }
+
+    function renderDays() {
+        const c = document.getElementById('dayHub');
+        c.innerHTML = days.map(d => `<div class="day-chip ${actDay === d ? 'active' : ''}" onclick="switchDay('${d}')">${d}</div>`).join('');
+    }
+
+    function switchDay(d) { save(); actDay = d; renderDays(); load(); }
+
+    function switchTab(t, b) {
+        document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active')); b.classList.add('active');
+        document.querySelectorAll('.tab-pane').forEach(x => x.classList.add('hidden'));
+        document.getElementById(t + '-view').classList.remove('hidden');
+    }
+
+    function addExcRow(data = {r:'Göğüs', n:'', s:'', t:'', a:''}) {
+        const c = document.getElementById('excStack');
+        const r = document.createElement('div');
+        r.className = 'data-row exc-grid';
+        r.innerHTML = `
+            <select class="e-r">${regs.map(x=>`<option ${data.r==x?'selected':''}>${x}</option>`).join('')}</select>
+            <input type="text" class="e-n" value="${data.n}" placeholder="Egzersiz">
+            <input type="number" class="e-s" value="${data.s}" placeholder="Set">
+            <input type="number" class="e-t" value="${data.t}" placeholder="Tek">
+            <input type="number" class="e-a" value="${data.a}" placeholder="Kg">
+            <button onclick="this.parentElement.remove(); save();" style="background:none; border:none; color:var(--danger)">✕</button>
+        `;
+        c.appendChild(r);
+        r.querySelectorAll('input, select').forEach(i => i.oninput = save);
+    }
+
+    function addMealRow(data = {g:'', t:'', d:''}) {
+        const c = document.getElementById('mealStack');
+        const r = document.createElement('div');
+        r.className = 'data-row meal-grid';
+        r.innerHTML = `
+            <input type="text" class="m-g" value="${data.g||''}" placeholder="Gün">
+            <input type="text" class="m-t" value="${data.t||''}" placeholder="Saat">
+            <input type="text" class="m-d" value="${data.d||''}" placeholder="Öğün İçeriği">
+            <button onclick="this.parentElement.remove(); save();" style="background:none; border:none; color:var(--danger)">✕</button>
+        `;
+        c.appendChild(r);
+        r.querySelectorAll('input').forEach(i => i.oninput = save);
+    }
+
+    function load() {
+        document.getElementById('excStack').innerHTML = ''; document.getElementById('mealStack').innerHTML = '';
+        const d = db[actId].days[actDay];
+        (d.exc||[]).forEach(x => addExcRow(x)); (d.meals||[]).forEach(x => addMealRow(x));
+        updateStats();
+    }
+
+    function save() {
+        if(!actId) return;
+        const exc = []; document.querySelectorAll('#excStack .exc-grid').forEach(r => {
+            const n = r.querySelector('.e-n').value;
+            if(n) exc.push({ r: r.querySelector('.e-r').value, n, s: r.querySelector('.e-s').value, t: r.querySelector('.e-t').value, a: r.querySelector('.e-a').value });
+        });
+        const meals = []; document.querySelectorAll('#mealStack .meal-grid').forEach(r => {
+            const d = r.querySelector('.m-d').value;
+            if(d) meals.push({ g: r.querySelector('.m-g').value, t: r.querySelector('.m-t').value, d });
+        });
+        db[actId].notes = document.getElementById('coachNotes').value;
+        db[actId].stats = { h: document.getElementById('s-h').value, w: document.getElementById('s-w').value };
+        db[actId].measures = { sh: document.getElementById('o-sh').value, wa: document.getElementById('o-wa').value, ar: document.getElementById('o-ar').value };
+        db[actId].biz = { sess: document.getElementById('f-sess').value, stat: document.getElementById('f-stat').value };
+        db[actId].days[actDay] = { exc, meals };
+        saveDB(); updateStats();
+    }
+
+    function updateStats() {
+        let v = 0; document.querySelectorAll('#excStack .exc-grid').forEach(r => {
+            v += ( (parseFloat(r.querySelector('.e-s').value)||0) * (parseFloat(r.querySelector('.e-t').value)||0) * (parseFloat(r.querySelector('.e-a').value)||0) );
+        });
+        document.getElementById('vol-badge').innerText = `TONAJ: ${v.toLocaleString()} KG`;
+    }
+
+    function setPic(type) {
+        const u = prompt("URL:"); if(u) { db[actId].photos[type] = u; save(); updatePics(); }
+    }
+
+    function updatePics() {
+        const p = db[actId].photos || {};
+        const ib = document.getElementById('img-before'), ia = document.getElementById('img-after');
+        if(p.before) { ib.src = p.before; ib.style.display='block'; } else ib.style.display='none';
+        if(p.after) { ia.src = p.after; ia.style.display='block'; } else ia.style.display='none';
+    }
+
+    function pushW() {
+        const w = parseFloat(document.getElementById('s-w').value);
+        if(!isNaN(w)) {
+            let h = db[actId].history || []; if(h[h.length-1] !== w) h.push(w);
+            if(h.length > 10) h.shift(); db[actId].history = h; buildChart();
+        }
+        save();
+    }
+
+    function buildChart() {
+        const ctx = document.getElementById('mainChart').getContext('2d'); if(chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: (db[actId].history||[]).map((_,i)=>i+1), datasets: [{ label: 'Kilo', data: db[actId].history||[], borderColor: '#38bdf8', tension: 0.4, fill:true, backgroundColor:'rgba(56,189,248,0.05)' }] },
+            options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{display:false}, x:{display:false}} }
+        });
+    }
+
+    function shareWA() {
+        let t = `*GYM OF LEGENDS - ${actDay.toUpperCase()}*\n\n`;
+        db[actId].days[actDay].exc.forEach(e => t += `- ${e.n}: ${e.s}x${e.t} @ ${e.a}kg\n`);
+        window.open(`https://wa.me/?text=${encodeURIComponent(t)}`);
+    }
+
+    function saveDB() { localStorage.setItem('gym_v29_mobile', JSON.stringify(db)); }
+    function deleteM(e, id) { e.stopPropagation(); if(confirm("Sil?")) { delete db[id]; saveDB(); location.reload(); } }
+
+    drawMembers();
+</script>
+</body>
+</html>
